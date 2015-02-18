@@ -489,6 +489,7 @@ func! s:MRU_Window_Edit_File(fname, multi, edit_type, open_type) abort
       endif
     endif
   endif
+  call s:MRU_AddFile(bufnr('%'))
 endfunc
 
 " MRU_Select_File_Cmd                   {{{1
