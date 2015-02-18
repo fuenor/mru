@@ -539,6 +539,17 @@ func! s:MRU_Select_File_Cmd(opt) range abort
 
   let fnames = getline(a:firstline, a:lastline)
 
+  let altuseopen = 0
+  if g:MRU_Use_Alt_useopen && open_type == 'altuseopen'
+    let l = count == 0 ? a:firstline : count
+    call cursor(l, 1)
+    let fnames = getline(l, l)
+    let altuseopen = 1
+  endif
+  if open_type == 'altuseopen'
+    let open_type = 'useopen'
+  endif
+
   if g:MRU_Auto_Close == 1 && g:MRU_Use_Current_Window == 0
     " Automatically close the window if the file window is
     " not used to display the MRU list.
@@ -556,6 +567,10 @@ func! s:MRU_Select_File_Cmd(opt) range abort
     let file = matchstr(f, g:MRU_Filename_Format.parser)
 
     call s:MRU_Window_Edit_File(file, multi, edit_type, open_type)
+
+    if altuseopen
+      break
+    endif
 
     if a:firstline != a:lastline
       " Opening multiple files
@@ -1077,6 +1092,10 @@ endfunc
 command! -nargs=0 FZFMru call s:MRU_FZF_Run()
 
 " }}}
+
+if !exists('g:MRU_Use_Alt_useopen')
+  let g:MRU_Use_Alt_useopen = 0
+endif
 
 let b:saved_mru_search = ''
 command! -nargs=? -complete=customlist,s:MRU_Complete -count=0 MRU
