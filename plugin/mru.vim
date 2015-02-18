@@ -126,10 +126,10 @@ endif
 " part to be highlighted.
 if !exists('MRU_Filename_Format')
   let MRU_Filename_Format = {
-	\ 'formatter': 'fnamemodify(v:val, ":t") . " (" . v:val . ")"',
-	\ 'parser': '(\zs.*\ze)',
-	\ 'syntax': '^.\{-}\ze('
-	\}
+       \ 'formatter': 'fnamemodify(v:val, ":t") . "| " . substitute(v:val, "\\", "/", "g")',
+       \ 'parser': '| \zs.*\ze$',
+       \ 'syntax': '^.\{-}\ze|'
+       \}
 endif
 
 let s:MRU_buf_name = '-RecentFiles-'
