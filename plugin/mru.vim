@@ -996,8 +996,8 @@ autocmd BufEnter * call s:MRU_AddFile(expand('<abuf>'))
 " The ':vimgrep' command adds all the files searched to the buffer list.
 " This also modifies the MRU list, even though the user didn't edit the
 " files. Use the following autocmds to prevent this.
-autocmd QuickFixCmdPre *vimgrep* let s:mru_list_locked = 1
-autocmd QuickFixCmdPost *vimgrep* let s:mru_list_locked = 0
+autocmd QuickFixCmdPre *grep* let s:mru_list_locked = 1
+autocmd QuickFixCmdPost *grep* let s:mru_list_locked = 0
 
 " MRU custom commands {{{1
 if v:version >= 800
