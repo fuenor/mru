@@ -73,7 +73,7 @@ endif
 
 " Option for enabling or disabling the MRU menu
 if !exists('MRU_Add_Menu')
-  let MRU_Add_Menu = 1
+  let MRU_Add_Menu = 1*has("gui_running")
 endif
 
 " Maximum number of file names to show in the MRU menu. If too many files are
