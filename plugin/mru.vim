@@ -133,6 +133,15 @@ if !exists('MRU_Filename_Format')
 endif
 
 let s:MRU_buf_name = '-RecentFiles-'
+if !exists('MRU_Path_Format')
+  let MRU_Path_Format = {
+  \ 'syntax': '| \zs.*[\/]\ze'
+  \}
+endif
+
+if !exists('MRU_Use_CursorLine')
+  let MRU_Use_CursorLine = 1
+endif
 
 " Control to temporarily lock the MRU list. Used to prevent files from
 " getting added to the MRU list when the ':vimgrep' command is executed.
@@ -639,7 +648,7 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
   setlocal noswapfile
   setlocal nobuflisted
   setlocal nowrap
-  setlocal nonumber
+  setlocal number
   if exists('&relativenumber')
     setlocal norelativenumber
   endif
@@ -724,13 +733,23 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
   " Delete the empty line at the end of the buffer
   silent! $delete _
 
+  if g:MRU_Use_CursorLine
+    setlocal cursorline
+  else
+    setlocal nocursorline
+  endif
+
   " Move the cursor to the beginning of the file
   normal! gg
 
   " Add syntax highlighting for the file names
   if has_key(g:MRU_Filename_Format, 'syntax')
     exe "syntax match MRUFileName '" . g:MRU_Filename_Format.syntax . "'"
-    highlight default link MRUFileName Identifier
+    highlight default link MRUFileName Directory
+  endif
+  if has_key(g:MRU_Path_Format, 'syntax')
+    exe "syntax match MRUPath '" . g:MRU_Path_Format.syntax . "'"
+    highlight default link MRUPath Constant
   endif
 
   setlocal nomodifiable
