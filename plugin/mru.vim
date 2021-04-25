@@ -157,7 +157,7 @@ if !exists('MRU_Filename_Format')
   let MRU_Filename_Format = {
        \ 'formatter': 'fnamemodify(v:val, ":t") . "| " . substitute(v:val, "\\", "/", "g")',
        \ 'parser': '| \zs.*\ze$',
-       \ 'syntax': '^.\{-}\ze|'
+       \ 'syntax': '^.\{-}\ze| '
        \}
 endif
 
@@ -563,10 +563,16 @@ func! s:MRU_Select_File_Cmd(opt) range abort
       continue
     endif
 
-    " The text in the MRU window contains the filename in parenthesis
-    let file = matchstr(f, g:MRU_Filename_Format.parser)
+    " buffers
+    if f =~ '^:'
+      let bnum = matchstr(f, '|\s*\zs\d\+\ze')
+      silent exe ":b ".bnum
+    else
+      " The text in the MRU window contains the filename in parenthesis
+      let file = matchstr(f, g:MRU_Filename_Format.parser)
 
-    call s:MRU_Window_Edit_File(file, multi, edit_type, open_type)
+      call s:MRU_Window_Edit_File(file, multi, edit_type, open_type)
+    endif
 
     if altuseopen
       break
@@ -789,11 +795,16 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
 
   " Get the tail part of the file name (without the directory) and display
   " it along with the full path in parenthesis.
-  let  output = map(m, g:MRU_Filename_Format.formatter)
-  silent! 0put =output
+  if a:pat =~ '^:buffers'
+    silent! let buflist = s:GetBufferInfo(":buffers!")
+    call setline(1, buflist)
+  else
+    let output = map(m, g:MRU_Filename_Format.formatter)
+    silent! 0put =output
 
-  " Delete the empty line at the end of the buffer
-  silent! $delete _
+    " Delete the empty line at the end of the buffer
+    silent! $delete _
+  endif
 
   if g:MRU_Use_CursorLine
     setlocal cursorline
@@ -815,6 +826,24 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
   endif
 
   setlocal nomodifiable
+endfunc
+
+func! s:GetBufferInfo(pat)
+  redir => bufoutput
+  exe a:pat
+  redir END
+
+  let bufinfo = []
+  for buf in split(bufoutput, '\n')
+    let bits = split(buf, '"')
+    let bufname = fnamemodify(bits[1], ':t')
+    if bufname == '-RecentFiles-' || bufname == 'QuickfixPreview'
+      continue
+    endif
+    let bufnum = substitute(bits[0], '[^0-9]', '', 'g')
+    call add(bufinfo, ': '. bufname. '| ' . bufnum . ' | ' . bits[1])
+  endfor
+  return bufinfo
 endfunc
 
 " MRU_Complete                          {{{1
@@ -841,6 +870,9 @@ func! s:MRU_Cmd(pat, splitdir, winsz) abort
   if a:pat == ''
     " No arguments specified. Open the MRU window
     call s:MRU_Open_Window('', a:splitdir, a:winsz)
+    return
+  elseif a:pat =~ '^:buffers'
+    call s:MRU_Open_Window(a:pat, a:splitdir, a:winsz)
     return
   endif
 
