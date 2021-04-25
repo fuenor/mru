@@ -692,6 +692,7 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
   setlocal filetype=mru
   " Use fixed height and width for the MRU window
   setlocal winfixheight winfixwidth
+  setlocal modifiable
 
   " Setup the cpoptions properly for the maps to work
   let old_cpoptions = &cpoptions
@@ -734,6 +735,21 @@ func! s:MRU_Open_Window(pat, splitdir, winsz) abort
   nnoremap <buffer> <silent> d
 	\ :<C-U>call <SID>MRU_Delete_From_List()<CR>
   nnoremap <buffer> <silent> q :close<CR>
+
+  nnoremap <buffer> <silent> <CR>
+              \ :call <SID>MRU_Select_File_Cmd('edit,altuseopen')<CR>
+  nnoremap <buffer> <silent> q :call MRUPost()<CR>
+  if has('gui_running')
+    nnoremap <buffer> <silent> <ESC> :call MRUPost()<CR>
+  endif
+  nnoremap <buffer> <silent> r :call <SID>SearchStrings('r')<CR>
+  nnoremap <buffer> <silent> s :call <SID>SearchStrings('s')<CR>
+  nnoremap <buffer> <silent> n :silent! exec "normal! n"<CR>:noh<CR>
+  nnoremap <buffer> <silent> N :silent! exec "normal! N"<CR>:noh<CR>
+  nnoremap <buffer> <silent> R :call <SID>Remove()<CR>
+  nnoremap <buffer> <silent> K :call <SID>Remove('force')<CR>
+  nnoremap <buffer> <silent> S :setlocal modifiable<CR>:sort<CR>:setlocal nomodifiable<CR>
+  nnoremap <buffer> <silent> U :MRU<CR>
 
   " Restore the previous cpoptions settings
   let &cpoptions = old_cpoptions
@@ -1061,6 +1077,93 @@ endfunc
 command! -nargs=0 FZFMru call s:MRU_FZF_Run()
 
 " }}}
+
+let b:saved_mru_search = ''
+command! -nargs=? -complete=customlist,s:MRU_Complete -count=0 MRU
+            \ call s:MRUbuf('save') |
+            \ call MRUPre() |
+            \ call s:MRU_Cmd(<q-args>, '', <count>) |
+            \ let b:saved_mru_search=@/ |
+            \ setlocal number
+command! -nargs=? -complete=customlist,s:MRU_Complete -count=0 Mru
+            \ call s:MRUbuf('save') |
+            \ call MRUPre() |
+            \ call s:MRU_Cmd(<q-args>, '', <count>) |
+            \ let b:saved_mru_search=@/ |
+            \ setlocal number
+
+let s:prebuf = 1
+function s:MRUbuf(mode)
+  if a:mode == 'save'
+    " if bufname('%') !~ '__MRU_Files__'
+    "   let s:prebuf = bufwinnr('%')
+    " endif
+  elseif a:mode == 'pre'
+    silent! wincmd p
+    " if s:prebuf <= winnr('$')
+    "   exe s:prebuf . 'wincmd w'
+    " endif
+  endif
+endfunction
+
+if !exists('*MRUPre')
+function MRUPre()
+endfunction
+endif
+if !exists('*MRUPost')
+function MRUPost()
+  let @/=b:saved_mru_search
+  noh
+  silent! close
+  silent! wincmd p
+endfunction
+endif
+
+function! s:SearchStrings(cmd)
+  if a:cmd == 'r'
+    let _key = input("Search for pattern (exclude) : ")
+  else
+    let _key = input("Search for pattern : ")
+  endif
+  let @/='^'._key
+  setlocal modifiable
+  if a:cmd == 's'
+    silent! exec ':g!/'._key.'/d'
+  else
+    silent! exec ':g/'._key.'/d'
+  endif
+  call cursor('1', '1')
+  setlocal nomodifiable
+  noh
+  return
+endfunction
+
+function! s:Remove(...)
+  call s:MRU_LoadList()
+  let lnum = line('.')
+  if a:0
+    call remove(s:MRU_files, line('.')-1)
+  else
+    let idx = 0
+    for file in s:MRU_files
+      if !filereadable(file)
+        call remove(s:MRU_files, idx)
+        continue
+      endif
+      let idx += 1
+    endfor
+  endif
+  if s:MRU_files == []
+    let s:mlist = ['']
+    close
+    MRU
+    return
+  endif
+  call s:MRU_SaveList()
+  MRU
+  call cursor(lnum, 1)
+  redraw |echo 'MRU : Remove file from MRU'
+endfunction
 
 " restore 'cpo'
 let &cpo = s:cpo_save
